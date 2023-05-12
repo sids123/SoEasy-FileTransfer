@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net" modified="2023-05-09T13:36:07.640Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36" etag="AUlTaY-ZjAx92SE5s9A6" version="21.1.5" type="device">
+  <diagram name="Page-1" id="ou_EQaeUelUGDN0txdiT">
+    <mxGraphModel dx="1434" dy="756" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-81" value="Device" style="swimlane;startSize=0;fontSize=20;" parent="1" vertex="1">
+          <mxGeometry x="175" y="310" width="230" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-82" value="GUI" style="ellipse;whiteSpace=wrap;html=1;" parent="OxnLg_dTvmKwSSNY-4OX-81" vertex="1">
+          <mxGeometry x="30" y="60" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-83" value="Logic" style="ellipse;whiteSpace=wrap;html=1;" parent="OxnLg_dTvmKwSSNY-4OX-81" vertex="1">
+          <mxGeometry x="30" y="145" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-84" value="File System" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#3F8624;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.file_system;" parent="OxnLg_dTvmKwSSNY-4OX-81" vertex="1">
+          <mxGeometry x="32.67" y="240" width="54.66" height="51.16" as="geometry" />
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-85" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" parent="OxnLg_dTvmKwSSNY-4OX-81" source="OxnLg_dTvmKwSSNY-4OX-83" target="OxnLg_dTvmKwSSNY-4OX-82" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="170" as="sourcePoint" />
+            <mxPoint x="70" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-86" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="OxnLg_dTvmKwSSNY-4OX-81" source="OxnLg_dTvmKwSSNY-4OX-84" target="OxnLg_dTvmKwSSNY-4OX-83" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="10" y="260" as="sourcePoint" />
+            <mxPoint x="60" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-88" value="COM" style="ellipse;whiteSpace=wrap;html=1;" parent="OxnLg_dTvmKwSSNY-4OX-81" vertex="1">
+          <mxGeometry x="140" y="60" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-19" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="OxnLg_dTvmKwSSNY-4OX-81" source="OxnLg_dTvmKwSSNY-4OX-83" target="OxnLg_dTvmKwSSNY-4OX-88">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="180" as="sourcePoint" />
+            <mxPoint x="135" y="130" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="170" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-89" value="User" style="image;html=1;image=img/lib/clip_art/people/Suit_Man_128x128.png;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="55" y="360" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="OxnLg_dTvmKwSSNY-4OX-90" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="OxnLg_dTvmKwSSNY-4OX-89" target="OxnLg_dTvmKwSSNY-4OX-82" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="125" y="420" as="sourcePoint" />
+            <mxPoint x="175" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-9" value="Device 2" style="swimlane;startSize=0;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="450" y="310" width="230" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-10" value="GUI" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="gIehHLpiQLbP4Mxroe02-9">
+          <mxGeometry x="140" y="59.42" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-11" value="Logic" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="gIehHLpiQLbP4Mxroe02-9">
+          <mxGeometry x="140" y="144.42" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-12" value="File System" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#3F8624;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.file_system;" vertex="1" parent="gIehHLpiQLbP4Mxroe02-9">
+          <mxGeometry x="142.67000000000002" y="239.42" width="54.66" height="51.16" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-13" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="gIehHLpiQLbP4Mxroe02-9" source="gIehHLpiQLbP4Mxroe02-11" target="gIehHLpiQLbP4Mxroe02-10">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="130" y="169.42" as="sourcePoint" />
+            <mxPoint x="180" y="119.42" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-14" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="gIehHLpiQLbP4Mxroe02-9" source="gIehHLpiQLbP4Mxroe02-12" target="gIehHLpiQLbP4Mxroe02-11">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="120" y="259.42" as="sourcePoint" />
+            <mxPoint x="170" y="209.42" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-16" value="COM" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="gIehHLpiQLbP4Mxroe02-9">
+          <mxGeometry x="30" y="59.42" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-20" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="gIehHLpiQLbP4Mxroe02-9" source="gIehHLpiQLbP4Mxroe02-11" target="gIehHLpiQLbP4Mxroe02-16">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="10" y="180" as="sourcePoint" />
+            <mxPoint x="60" y="130" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="60" y="174" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-21" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="gIehHLpiQLbP4Mxroe02-9">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="88.92000000000002" as="sourcePoint" />
+            <mxPoint x="270" y="88.92000000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-17" value="User" style="image;html=1;image=img/lib/clip_art/people/Suit_Man_128x128.png;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="gIehHLpiQLbP4Mxroe02-22" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="OxnLg_dTvmKwSSNY-4OX-88" target="gIehHLpiQLbP4Mxroe02-16">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="270" as="sourcePoint" />
+            <mxPoint x="440" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
