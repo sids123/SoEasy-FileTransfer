@@ -73,43 +73,37 @@ class Project:
             self.file_sending_sockets.append(sock)
             self.main_sending_socket.send_massage.emit("connected")
             time.sleep(1)
-            print("9" + file)
-        print(10)
+        i=0
+        self.sockets = ["" for f in self.files_and_paths.keys()]
         for file in self.files_and_paths:
-            sock = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
-            sock.file_received_or_error.connect(self.add_to_received_files)
+            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
             self.g_port +=1
-            sock.start()
-            self.file_recving_sockets.append(sock)
+            self.sockets[i].start()
+            self.file_recving_sockets.append(self.sockets[i])
             self.main_sending_socket.send_massage.emit("socket opened")
             time.sleep(1)
             self.condition.wait(self.mutex)
-            print("11" + file)
-        print(12)
+            i+=1
         self.main_sending_socket.done_signal.emit()
         self.main_receiving_socket.done_signal.emit()
 
-        self.mutex.unlock()
 
         files_not_received = []
+        all_socket_finished = True
         while True:
-            if len(self.files_received) == len(self.files_and_paths.keys()):
-                for file in self.files_received:
-                    if file in self.files:
-                        pass
-                    else:
-                        files_not_received.append(file)
+            for socket in self.sockets:
+                if not socket.finished:
+                    all_socket_finished = False
+            if all_socket_finished:
                 break
-        if len(files_not_received) == 0:
-            self.main_window.change_to_message_win("all files received successfully")
-        else:
-            message = ""
-            for file in files_not_received:
-                message += f"file: {file} wasn't received successfully \n"
-            self.main_window.change_to_message_win(message)
+            all_socket_finished = True
 
-    def add_to_received_files(self, file):
-        self.files_received.append(file)
+
+        self.main_window.change_to_message_win("all files received successfully")
+
+        self.mutex.unlock()
+
+
 
     def win2_finished(self, files):
         self.files = files

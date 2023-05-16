@@ -45,14 +45,12 @@ class MainSendingSocket(QThread):
 
             while True:
                 self.condition.wait(self.mutex)
-                print(1)
                 self.sending_socket.send(self.message.encode())
                 if self.done_condition:
                     break
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-        print(2)
         self.mutex.unlock()
 
     def connect_to_phone(self):
@@ -110,11 +108,9 @@ class FileSendingSocket(MainSendingSocket):
                     # we use sendall to assure transmission in
                     # busy networks
                     self.sending_socket.sendall(bytes_read)
-                    print("3" + file_name)
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-        print("4" + file_name)
         self.sending_socket.close()
 
 
@@ -148,13 +144,11 @@ class MainReceivingSocket(QThread):
             while True:
                 message = self.receiving_socket.recv(1024).decode()
                 self.receive.emit(message) # add signal connected
-                print(5)
                 if self.done_condition:
                     break
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-        print(6)
         self.receiving_socket.close()
 
     def handle_connection(self):
@@ -176,12 +170,12 @@ class MainReceivingSocket(QThread):
         self.done_condition = True
 
 class FileReceivingSocket(MainReceivingSocket):
-    file_received_or_error = pyqtSignal(str)
     def __init__(self, ip, port, files_and_paths):
         super(FileReceivingSocket, self).__init__(ip, port)
         self.file = None
         self.BUFFER_SIZE = 1024
         self.files_and_paths = files_and_paths
+        self.finished = False
 
     def run(self):
         self.handle_connection()
@@ -193,7 +187,6 @@ class FileReceivingSocket(MainReceivingSocket):
                 while True:
                     # read 1024 bytes from the socket (receive)
                     bytes_read = self.receiving_socket.recv(self.BUFFER_SIZE)
-                    print("7" + file_name)
                     if not bytes_read:
                         # nothing is received
                         # file transmitting is done
@@ -201,9 +194,8 @@ class FileReceivingSocket(MainReceivingSocket):
                     # write to the file the bytes we just received
                     file.write(bytes_read)
         except Exception as exception:
-            self.file_received_or_error.emit(str(exception))
-        self.file_received_or_error.emit(file_name)
-        print("8" + file_name)
+            self.exception_rose.emit(str(exception))
+        self.finished = True
         self.receiving_socket.close()
 
     def handle_address(self):

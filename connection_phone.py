@@ -1,6 +1,5 @@
 #
 import time
-
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -13,7 +12,7 @@ import time
 class MainSendingSocket(QThread):
     got_file_list = pyqtSignal(list)
     ready_to_send = pyqtSignal()
-    connected = pyqtSignal(str) #wrong name
+    send_massage = pyqtSignal(str)
     done_signal = pyqtSignal()
     exception_rose = pyqtSignal(str)
 
@@ -29,7 +28,7 @@ class MainSendingSocket(QThread):
 
         self.got_file_list.connect(self.got_files)
         self.ready_to_send.connect(self.ready_to_send_files)
-        self.connected.connect(self.send)
+        self.send_massage.connect(self.send)
         self.done_signal.connect(self.done)
         self.done_condition = False
         self.files = []
@@ -54,7 +53,7 @@ class MainSendingSocket(QThread):
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception)+"1")
+            self.exception_rose.emit(str(exception))
 
         self.mutex.unlock()
         
@@ -98,7 +97,7 @@ class FileSendingSocket(MainSendingSocket):
 
         file_name = self.file_path.split("/")[-1]
         try:
-            self.sending_socket.send(str(file_name).encode("latin-1"))
+            self.sending_socket.send(str(file_name).encode())
 
             with open(self.file_path, "rb") as f:
                 while True:
@@ -111,7 +110,7 @@ class FileSendingSocket(MainSendingSocket):
                     self.sending_socket.sendall(bytes_read)
 
         except Exception as exception:
-                self.exception_rose.emit(str(exception)+"2")
+                self.exception_rose.emit(str(exception))
 
         self.sending_socket.close()
 
@@ -120,7 +119,7 @@ class MainReceivingSocket(QThread):
     connection_made = pyqtSignal()
     got_file_list_from_phone = pyqtSignal(list)
     ready_for_files = pyqtSignal()
-    socket_opened = pyqtSignal(str) #wrong name
+    receive = pyqtSignal(str) #wrong name
     done_signal = pyqtSignal()
     exception_rose = pyqtSignal(str)
 
@@ -147,12 +146,12 @@ class MainReceivingSocket(QThread):
 
             while True:
                 message = self.receiving_socket.recv(1024).decode()
-                self.socket_opened.emit(message)  # add signal connected
+                self.receive.emit(message)  # add signal connected
                 if self.done_condition:
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception)+"3")
+            self.exception_rose.emit(str(exception))
             
         self.receiving_socket.close()
 
@@ -175,7 +174,6 @@ class MainReceivingSocket(QThread):
         self.done_condition = True
 
 class FileReceivingSocket(MainReceivingSocket):
-    file_received_or_error = pyqtSignal(str)
     def __init__(self, ip, port, files_and_paths):
         super(FileReceivingSocket, self).__init__(ip, port)
         self.file = None
@@ -183,14 +181,13 @@ class FileReceivingSocket(MainReceivingSocket):
         self.files_and_paths = files_and_paths
 
     def run(self):
-        time.sleep(1)
         self.handle_connection()
         try:
-            file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode("latin-1")
+            file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode()
             location = self.files_and_paths[file_name]
-            print(file_name + " " + os.path.join(location, file_name))
+            time.sleep(1)
 
-            with open(os.path.join(location, file_name), "wb") as file:
+            with open(f"{location}/{file_name}", "wb") as file:
                 while True:
                     # read 1024 bytes from the socket (receive)
                     bytes_read = self.receiving_socket.recv(self.BUFFER_SIZE)
@@ -200,10 +197,9 @@ class FileReceivingSocket(MainReceivingSocket):
                         break
                     # write to the file the bytes we just received
                     file.write(bytes_read)
+            time.sleep(1)
         except Exception as exception:
-            self.file_received_or_error.emit(str(exception))
-        self.file_received_or_error.emit(file_name)
-        time.sleep(1)
+            self.exception_rose.emit(str(exception))
         self.receiving_socket.close()
 
     def handle_address(self):

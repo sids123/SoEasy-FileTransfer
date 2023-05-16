@@ -5,6 +5,7 @@ from GUI_phone import *
 from Connection_phone import *
 import netifaces
 from threading import Thread
+import time
 
 class Project:
     def __init__(self):
@@ -29,7 +30,7 @@ class Project:
         self.condition = QWaitCondition()
         self.files_received = []
 
-        self.main_receiving_socket.socket_opened.connect(self.socket_opened)
+        self.main_receiving_socket.receive.connect(self.socket_opened)
         self.main_receiving_socket.connection_made.connect(self.handle_connection)
         self.main_receiving_socket.got_file_list_from_phone.connect(self.handle_files)
         self.main_receiving_socket.ready_for_files.connect(self.phone_ready_for_files)
@@ -76,50 +77,43 @@ class Project:
         self.file_sending_sockets = []
         self.file_recving_sockets = []
         self.mutex.lock()
+        i=0
+        self.sockets = ["" for f in self.files_and_paths.keys()]
         for file in self.files_and_paths:
             time.sleep(1)
-            print(1)
-            sock = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
-            sock.file_received_or_error.connect(self.exception_rose)
+            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
             self.g_port+=1
-            sock.start()
-            self.file_recving_sockets.append(sock)
-            self.main_sending_socket.connected.emit("socket opened")
+            self.sockets[i].start()
+            self.file_recving_sockets.append(self.sockets[i])
+            self.main_sending_socket.send_massage.emit("socket opened")
             self.condition.wait(self.mutex)
-
+            i += 1
         for file in self.files:
             self.condition.wait(self.mutex)
             sock = FileSendingSocket(self.computer_ip, self.g_port, file)
             self.g_port+=1
             sock.start()
             self.file_sending_sockets.append(sock)
-            self.main_sending_socket.connected.emit("connected")
+            self.main_sending_socket.send_massage.emit("connected")
             time.sleep(1)
 
         self.main_sending_socket.done_signal.emit()
         self.main_receiving_socket.done_signal.emit()
 
-        self.mutex.unlock()
 
         files_not_received = []
+        all_socket_finished = True
         while True:
-            if len(self.files_received) == len(self.files):
-                for file in self.files_received:
-                    if file in self.files:
-                        pass
-                    else:
-                        files_not_received.append(file)
+            for socket in self.sockets:
+                if not socket.finished:
+                    all_socket_finished = False
+            if all_socket_finished:
                 break
-        if len(files_not_received) == 0:
-            self.main_window.change_to_message_win("all files received successfully")
-        else:
-            message = ""
-            for file in files_not_received:
-                message += f"file: {file} wasn't received successfully \n"
-            self.main_window.change_to_message_win(message)
+            all_socket_finished = True
 
-    def add_to_received_files(self, file):
-        self.files_received.append(file)
+        self.main_window.change_to_message_win("all files received successfully")
+
+        self.mutex.unlock()
 
     def win2_finished(self, files):
         self.files = files
