@@ -1,3 +1,5 @@
+import time
+
 from gui import *
 from connection import *
 import qrcode
@@ -21,6 +23,7 @@ class Project:
         self.is_phone_ready_for_the_files = False
         self.mutex = QMutex()
         self.condition = QWaitCondition()
+        self.files_received = []
 
         self.main_receiving_socket.connection_made.connect(self.handle_connection)
         self.main_receiving_socket.got_file_list_from_phone.connect(self.handle_files)
@@ -69,21 +72,44 @@ class Project:
             sock.start()
             self.file_sending_sockets.append(sock)
             self.main_sending_socket.send_massage.emit("connected")
-
+            time.sleep(1)
+            print("9" + file)
+        print(10)
         for file in self.files_and_paths:
             sock = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
+            sock.file_received_or_error.connect(self.add_to_received_files)
             self.g_port +=1
             sock.start()
             self.file_recving_sockets.append(sock)
             self.main_sending_socket.send_massage.emit("socket opened")
+            time.sleep(1)
             self.condition.wait(self.mutex)
-
+            print("11" + file)
+        print(12)
         self.main_sending_socket.done_signal.emit()
         self.main_receiving_socket.done_signal.emit()
 
         self.mutex.unlock()
 
-        self.main_window.change_to_message_win("success")
+        files_not_received = []
+        while True:
+            if len(self.files_received) == len(self.files_and_paths.keys()):
+                for file in self.files_received:
+                    if file in self.files:
+                        pass
+                    else:
+                        files_not_received.append(file)
+                break
+        if len(files_not_received) == 0:
+            self.main_window.change_to_message_win("all files received successfully")
+        else:
+            message = ""
+            for file in files_not_received:
+                message += f"file: {file} wasn't received successfully \n"
+            self.main_window.change_to_message_win(message)
+
+    def add_to_received_files(self, file):
+        self.files_received.append(file)
 
     def win2_finished(self, files):
         self.files = files

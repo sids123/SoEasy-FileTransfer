@@ -6,6 +6,7 @@ from message_win import *
 from window1_phone import *
 from window2_phone import *
 from window3_phone import *
+import time
 
 
 class MainWindow(QMainWindow):

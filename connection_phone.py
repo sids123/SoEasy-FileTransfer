@@ -7,6 +7,7 @@ from PyQt5.QtCore import *
 import socket
 import pickle
 import os
+import time
 
 
 class MainSendingSocket(QThread):
@@ -53,10 +54,10 @@ class MainSendingSocket(QThread):
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
+            self.exception_rose.emit(str(exception)+"1")
 
         self.mutex.unlock()
-
+        
         self.sending_socket.close()
 
     def connect_to_phone(self):
@@ -110,7 +111,7 @@ class FileSendingSocket(MainSendingSocket):
                     self.sending_socket.sendall(bytes_read)
 
         except Exception as exception:
-                self.exception_rose.emit(str(exception))
+                self.exception_rose.emit(str(exception)+"2")
 
         self.sending_socket.close()
 
@@ -131,6 +132,7 @@ class MainReceivingSocket(QThread):
         self.port = port
         self.done_signal.connect(self.done)
         self.done_condition = False
+        self.receiving_socket=None
 
     def run(self):
         self.handle_connection()
@@ -150,8 +152,8 @@ class MainReceivingSocket(QThread):
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
-
+            self.exception_rose.emit(str(exception)+"3")
+            
         self.receiving_socket.close()
 
     def handle_connection(self):
@@ -173,6 +175,7 @@ class MainReceivingSocket(QThread):
         self.done_condition = True
 
 class FileReceivingSocket(MainReceivingSocket):
+    file_received_or_error = pyqtSignal(str)
     def __init__(self, ip, port, files_and_paths):
         super(FileReceivingSocket, self).__init__(ip, port)
         self.file = None
@@ -180,10 +183,12 @@ class FileReceivingSocket(MainReceivingSocket):
         self.files_and_paths = files_and_paths
 
     def run(self):
+        time.sleep(1)
         self.handle_connection()
         try:
             file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode("latin-1")
             location = self.files_and_paths[file_name]
+            print(file_name + " " + os.path.join(location, file_name))
 
             with open(os.path.join(location, file_name), "wb") as file:
                 while True:
@@ -196,7 +201,9 @@ class FileReceivingSocket(MainReceivingSocket):
                     # write to the file the bytes we just received
                     file.write(bytes_read)
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
+            self.file_received_or_error.emit(str(exception))
+        self.file_received_or_error.emit(file_name)
+        time.sleep(1)
         self.receiving_socket.close()
 
     def handle_address(self):

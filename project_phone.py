@@ -1,8 +1,8 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from gui_phone import *
-from connection_phone import *
+from GUI_phone import *
+from Connection_phone import *
 import netifaces
 from threading import Thread
 
@@ -27,6 +27,7 @@ class Project:
         self.is_phone_ready_for_the_files = False
         self.mutex = QMutex()
         self.condition = QWaitCondition()
+        self.files_received = []
 
         self.main_receiving_socket.socket_opened.connect(self.socket_opened)
         self.main_receiving_socket.connection_made.connect(self.handle_connection)
@@ -35,6 +36,7 @@ class Project:
 
         self.main_window.window1.ConnectingThread.got_data.connect(self.handle_data)
         self.main_window.window2.finished.connect(self.win2_finished)
+        self.main_window.window3.all_files_have_location.connect(self.finished_window3)
 
         self.main_receiving_socket.exception_rose.connect(self.exception_rose)
 
@@ -75,7 +77,10 @@ class Project:
         self.file_recving_sockets = []
         self.mutex.lock()
         for file in self.files_and_paths:
+            time.sleep(1)
+            print(1)
             sock = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
+            sock.file_received_or_error.connect(self.exception_rose)
             self.g_port+=1
             sock.start()
             self.file_recving_sockets.append(sock)
@@ -89,13 +94,32 @@ class Project:
             sock.start()
             self.file_sending_sockets.append(sock)
             self.main_sending_socket.connected.emit("connected")
+            time.sleep(1)
 
         self.main_sending_socket.done_signal.emit()
         self.main_receiving_socket.done_signal.emit()
 
         self.mutex.unlock()
 
-        self.main_window.change_to_message_win("success")
+        files_not_received = []
+        while True:
+            if len(self.files_received) == len(self.files):
+                for file in self.files_received:
+                    if file in self.files:
+                        pass
+                    else:
+                        files_not_received.append(file)
+                break
+        if len(files_not_received) == 0:
+            self.main_window.change_to_message_win("all files received successfully")
+        else:
+            message = ""
+            for file in files_not_received:
+                message += f"file: {file} wasn't received successfully \n"
+            self.main_window.change_to_message_win(message)
+
+    def add_to_received_files(self, file):
+        self.files_received.append(file)
 
     def win2_finished(self, files):
         self.files = files

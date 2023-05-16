@@ -45,13 +45,14 @@ class MainSendingSocket(QThread):
 
             while True:
                 self.condition.wait(self.mutex)
+                print(1)
                 self.sending_socket.send(self.message.encode())
                 if self.done_condition:
                     break
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-
+        print(2)
         self.mutex.unlock()
 
     def connect_to_phone(self):
@@ -82,6 +83,9 @@ class MainSendingSocket(QThread):
 
     def done(self):
         self.done_condition = True
+        self.mutex.lock()
+        self.condition.wakeAll()
+        self.mutex.unlock()
 
 
 class FileSendingSocket(MainSendingSocket):
@@ -95,8 +99,7 @@ class FileSendingSocket(MainSendingSocket):
 
         file_name = self.file_path.split("/")[-1]
         try:
-            print(file_name)
-            self.sending_socket.send(str(file_name).encode("latin-1"))
+            self.sending_socket.send(str(file_name).encode())
 
             with open(self.file_path, "rb") as f:
                 while True:
@@ -107,11 +110,11 @@ class FileSendingSocket(MainSendingSocket):
                     # we use sendall to assure transmission in
                     # busy networks
                     self.sending_socket.sendall(bytes_read)
-                    print(3)
+                    print("3" + file_name)
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-        print(4)
+        print("4" + file_name)
         self.sending_socket.close()
 
 
@@ -145,12 +148,13 @@ class MainReceivingSocket(QThread):
             while True:
                 message = self.receiving_socket.recv(1024).decode()
                 self.receive.emit(message) # add signal connected
+                print(5)
                 if self.done_condition:
                     break
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-
+        print(6)
         self.receiving_socket.close()
 
     def handle_connection(self):
@@ -167,10 +171,12 @@ class MainReceivingSocket(QThread):
     def handle_address(self):
         self.connection_made.emit(self.address)
 
+
     def done(self):
         self.done_condition = True
 
 class FileReceivingSocket(MainReceivingSocket):
+    file_received_or_error = pyqtSignal(str)
     def __init__(self, ip, port, files_and_paths):
         super(FileReceivingSocket, self).__init__(ip, port)
         self.file = None
@@ -180,23 +186,24 @@ class FileReceivingSocket(MainReceivingSocket):
     def run(self):
         self.handle_connection()
         try:
-            file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode("latin-1")
+            file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode()
             location = self.files_and_paths[file_name]
 
             with open(os.path.join(location, file_name), "wb") as file:
                 while True:
                     # read 1024 bytes from the socket (receive)
                     bytes_read = self.receiving_socket.recv(self.BUFFER_SIZE)
+                    print("7" + file_name)
                     if not bytes_read:
                         # nothing is received
                         # file transmitting is done
                         break
                     # write to the file the bytes we just received
                     file.write(bytes_read)
-                    print(1)
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
-        print(2)
+            self.file_received_or_error.emit(str(exception))
+        self.file_received_or_error.emit(file_name)
+        print("8" + file_name)
         self.receiving_socket.close()
 
     def handle_address(self):
