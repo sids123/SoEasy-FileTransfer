@@ -6,6 +6,8 @@ from Connection_phone import *
 import netifaces
 from threading import Thread
 import time
+from cryptography.fernet import Fernet
+
 
 class Project:
     def __init__(self):
@@ -35,7 +37,7 @@ class Project:
         self.main_receiving_socket.got_file_list_from_phone.connect(self.handle_files)
         self.main_receiving_socket.ready_for_files.connect(self.phone_ready_for_files)
 
-        self.main_window.window1.ConnectingThread.got_data.connect(self.handle_data)
+        self.main_window.window1.CameraThread.got_data.connect(self.handle_data)
         self.main_window.window2.finished.connect(self.win2_finished)
         self.main_window.window3.all_files_have_location.connect(self.finished_window3)
 
@@ -50,7 +52,9 @@ class Project:
         data = data.split()
         self.computer_ip = data[0]
         self.computer_port = int(data[1])
-        self.main_sending_socket = MainSendingSocket(self.computer_ip, self.computer_port)
+        self.key = data[2].encode()
+        self.main_receiving_socket.add_encrypting_object(self.key)
+        self.main_sending_socket = MainSendingSocket(self.computer_ip, self.computer_port, self.key)
         self.main_sending_socket.exception_rose.connect(self.exception_rose)
         self.main_sending_socket.start()
 
@@ -81,7 +85,7 @@ class Project:
         self.sockets = ["" for f in self.files_and_paths.keys()]
         for file in self.files_and_paths:
             time.sleep(1)
-            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
+            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths, self.key)
             self.g_port+=1
             self.sockets[i].start()
             self.file_recving_sockets.append(self.sockets[i])
@@ -90,7 +94,7 @@ class Project:
             i += 1
         for file in self.files:
             self.condition.wait(self.mutex)
-            sock = FileSendingSocket(self.computer_ip, self.g_port, file)
+            sock = FileSendingSocket(self.computer_ip, self.g_port, file, self.key)
             self.g_port+=1
             sock.start()
             self.file_sending_sockets.append(sock)

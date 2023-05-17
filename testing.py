@@ -1,4 +1,5 @@
-try:
-    print(1/0)
-except Exception as e:
-    print(str(e))
+from cryptography.fernet import Fernet
+
+key = Fernet.generate_key()
+print(key.decode())
+print(key)

@@ -1,5 +1,5 @@
 import time
-
+from cryptography.fernet import Fernet
 from gui import *
 from connection import *
 import qrcode
@@ -8,15 +8,16 @@ import sys
 
 class Project:
     def __init__(self):
+        self.key = Fernet.generate_key()
         self.ip = str(socket.gethostbyname(socket.gethostname()))
         self.port = 6744
         self.phone_port = 6745
         self.g_port = 6746
         self.path = "qr.png"
-        self.qr_image = qrcode.make(f"{self.ip} {str(self.port)}")
+        self.qr_image = qrcode.make(f"{self.ip} {str(self.port)} {self.key.decode()}")
         self.qr_image.save(self.path)
-        self.main_window = MainWindow()
-        self.main_receiving_socket = MainReceivingSocket(self.ip, self.port)
+        self.main_window = MainWindow(self.path)
+        self.main_receiving_socket = MainReceivingSocket(self.ip, self.port, self.key)
         self.got_files = False
         self.finished_window2 = False
         self.ready_for_the_files = False
@@ -40,7 +41,7 @@ class Project:
 
     def handle_connection(self, address):
         self.phone_ip = address[0]
-        self.main_sending_socket = MainSendingSocket(self.phone_ip, self.phone_port)
+        self.main_sending_socket = MainSendingSocket(self.phone_ip, self.phone_port, self.key)
         self.main_sending_socket.exception_rose.connect(self.exception_rose)
         self.main_sending_socket.start()
         self.main_window.change_win()
@@ -67,7 +68,7 @@ class Project:
         self.mutex.lock()
         for file in self.files:
             self.condition.wait(self.mutex)
-            sock = FileSendingSocket(self.phone_ip, self.g_port, file)
+            sock = FileSendingSocket(self.phone_ip, self.g_port, file, self.key)
             self.g_port +=1
             sock.start()
             self.file_sending_sockets.append(sock)
@@ -76,7 +77,7 @@ class Project:
         i=0
         self.sockets = ["" for f in self.files_and_paths.keys()]
         for file in self.files_and_paths:
-            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths)
+            self.sockets[i] = FileReceivingSocket(self.ip, self.g_port, self.files_and_paths, self.key)
             self.g_port +=1
             self.sockets[i].start()
             self.file_recving_sockets.append(self.sockets[i])

@@ -5,9 +5,9 @@ from message_win import *
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, path):
         super(MainWindow, self).__init__()
-        self.path = "qr.png"
+        self.path = path
         self.setGeometry(100, 100, 1300, 700)
         self.setWindowTitle("project")
         self.setup_ui()

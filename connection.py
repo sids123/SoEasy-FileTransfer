@@ -4,6 +4,8 @@ from PyQt5.QtCore import *
 import socket
 import pickle
 import os
+from cryptography.fernet import Fernet
+
 
 
 class MainSendingSocket(QThread):
@@ -13,11 +15,12 @@ class MainSendingSocket(QThread):
     done_signal = pyqtSignal()
     exception_rose = pyqtSignal(str)
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, key):
         super(MainSendingSocket, self).__init__()
         self.ip = ip
         self.port = port
         self.sending_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.encrypting_object = Fernet(key)
 
         self.mutex = QMutex()
         self.condition = QWaitCondition()
@@ -38,14 +41,14 @@ class MainSendingSocket(QThread):
         serialized_file_list = pickle.dumps(self.files)
 
         try:
-            self.sending_socket.send(serialized_file_list)
+            self.sending_socket.send(self.encrypting_object.encrypt(serialized_file_list))
 
             self.condition.wait(self.mutex)
-            self.sending_socket.send("ready for files".encode())
+            self.sending_socket.send(self.encrypting_object.encrypt("ready for files".encode()))
 
             while True:
                 self.condition.wait(self.mutex)
-                self.sending_socket.send(self.message.encode())
+                self.sending_socket.send(self.encrypting_object.encrypt(self.message.encode()))
                 if self.done_condition:
                     break
 
@@ -87,8 +90,8 @@ class MainSendingSocket(QThread):
 
 
 class FileSendingSocket(MainSendingSocket):
-    def __init__(self, ip, port, file_path):
-        super(FileSendingSocket, self).__init__(ip, port)
+    def __init__(self, ip, port, file_path, key):
+        super(FileSendingSocket, self).__init__(ip, port, key)
         self.file_path = file_path
         self.BUFFER_SIZE = 1024
 
@@ -97,7 +100,7 @@ class FileSendingSocket(MainSendingSocket):
 
         file_name = self.file_path.split("/")[-1]
         try:
-            self.sending_socket.send(str(file_name).encode())
+            self.sending_socket.send(self.encrypting_object.encrypt(str(file_name).encode()))
 
             with open(self.file_path, "rb") as f:
                 while True:
@@ -107,7 +110,7 @@ class FileSendingSocket(MainSendingSocket):
                         break
                     # we use sendall to assure transmission in
                     # busy networks
-                    self.sending_socket.sendall(bytes_read)
+                    self.sending_socket.sendall(self.encrypting_object.encrypt(bytes_read))
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
@@ -122,28 +125,31 @@ class MainReceivingSocket(QThread):
     done_signal = pyqtSignal()
     exception_rose = pyqtSignal(str)
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, key):
         super(MainReceivingSocket, self).__init__()
         self.ip = ip
         self.port = port
         self.done_signal.connect(self.done)
         self.done_condition = False
+        self.encrypting_object = Fernet(key)
+
 
 
     def run(self):
         self.handle_connection()
         try:
-            serialized_file_list = self.receiving_socket.recv(1024)
+            serialized_file_list = self.encrypting_object.decrypt(self.receiving_socket.recv(1024))
             list_of_files = pickle.loads(serialized_file_list)
 
             self.got_file_list_from_phone.emit(list_of_files)
 
-            self.receiving_socket.recv(1024)
-            self.ready_for_files.emit()
+            message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
+            if message == "ready for files":
+                self.ready_for_files.emit()
 
             while True:
-                message = self.receiving_socket.recv(1024).decode()
-                self.receive.emit(message) # add signal connected
+                message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
+                self.receive.emit(message)
                 if self.done_condition:
                     break
 
@@ -170,8 +176,8 @@ class MainReceivingSocket(QThread):
         self.done_condition = True
 
 class FileReceivingSocket(MainReceivingSocket):
-    def __init__(self, ip, port, files_and_paths):
-        super(FileReceivingSocket, self).__init__(ip, port)
+    def __init__(self, ip, port, files_and_paths, key):
+        super(FileReceivingSocket, self).__init__(ip, port, key)
         self.file = None
         self.BUFFER_SIZE = 1024
         self.files_and_paths = files_and_paths
@@ -180,13 +186,13 @@ class FileReceivingSocket(MainReceivingSocket):
     def run(self):
         self.handle_connection()
         try:
-            file_name = self.receiving_socket.recv(self.BUFFER_SIZE).decode()
+            file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
 
             with open(os.path.join(location, file_name), "wb") as file:
                 while True:
                     # read 1024 bytes from the socket (receive)
-                    bytes_read = self.receiving_socket.recv(self.BUFFER_SIZE)
+                    bytes_read = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE))
                     if not bytes_read:
                         # nothing is received
                         # file transmitting is done

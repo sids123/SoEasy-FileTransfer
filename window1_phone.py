@@ -1,3 +1,4 @@
+#
 import socket
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -15,17 +16,17 @@ class Window1(QWidget):
         self.FeedLabel = QLabel()
         self.VBL.addWidget(self.FeedLabel)
 
-        self.ConnectingThread = ConnectingThread()
+        self.CameraThread = CameraThread()
 
-        self.ConnectingThread.start()
-        self.ConnectingThread.ImageUpdate.connect(self.ImageUpdateSlot)
+        self.CameraThread.start()
+        self.CameraThread.ImageUpdate.connect(self.ImageUpdateSlot)
         self.setLayout(self.VBL)
 
 
     def ImageUpdateSlot(self, Image):
         self.FeedLabel.setPixmap(QPixmap.fromImage(Image))
 
-class ConnectingThread(QThread): # change
+class CameraThread(QThread):
     ImageUpdate = pyqtSignal(QImage)
     got_data = pyqtSignal(str)
     def run(self):
@@ -40,6 +41,5 @@ class ConnectingThread(QThread): # change
                 self.ImageUpdate.emit(Pic)
                 data, bbox, _ = detector.detectAndDecode(Image)
                 if data:
-                    ip, port = str(data).split()
-                    self.got_data.emit(f"{ip} {port}")
+                    self.got_data.emit(str(data))
                     break
