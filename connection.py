@@ -1,3 +1,5 @@
+import time
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -104,16 +106,22 @@ class FileSendingSocket(MainSendingSocket):
 
             with open(self.file_path, "rb") as f:
                 while True:
-                    bytes_read = f.read(self.BUFFER_SIZE)
+                    bytes_read = f.read(1024)
                     if not bytes_read:
                         # file transmitting is done
                         break
                     # we use sendall to assure transmission in
                     # busy networks
-                    self.sending_socket.sendall(self.encrypting_object.encrypt(bytes_read))
+                    encrypted_bytes = self.encrypting_object.encrypt(bytes_read)
+                    size = len(encrypted_bytes)
+                    self.sending_socket.send(str(size).encode())
+                    message = self.sending_socket.recv(1024)
+                    self.sending_socket.send(encrypted_bytes)
+
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
+
         self.sending_socket.close()
 
 

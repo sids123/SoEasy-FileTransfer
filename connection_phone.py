@@ -184,7 +184,7 @@ class FileReceivingSocket(MainReceivingSocket):
     def __init__(self, ip, port, files_and_paths, key):
         super(FileReceivingSocket, self).__init__(ip, port, key)
         self.file = None
-        self.BUFFER_SIZE = 1024
+        self.BUFFER_SIZE = 256
         self.files_and_paths = files_and_paths
         self.finished = False
 
