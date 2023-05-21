@@ -197,15 +197,27 @@ class FileReceivingSocket(MainReceivingSocket):
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
 
-            with open(os.path.join(location, file_name), "wb") as file:
+            time.sleep(1)
+
+            with open(f"{location}/{file_name}", "wb") as file:
                 while True:
+                    error_line = 0
                     # read 1024 bytes from the socket (receive)
-                    bytes_read = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE))
+                    size = self.receiving_socket.recv(1024)
+                    self.receiving_socket.send(size)
+                    size = int(size.decode())
+                    bytes_encrypted = self.receiving_socket.recv(size)
+
+                    error_line += 1
+                    bytes_read = self.encrypting_object.decrypt(bytes_encrypted)
+
+                    error_line += 1
                     if not bytes_read:
                         # nothing is received
                         # file transmitting is done
                         break
                     # write to the file the bytes we just received
+                    error_line += 1
                     file.write(bytes_read)
         except Exception as exception:
             self.exception_rose.emit(str(exception))
