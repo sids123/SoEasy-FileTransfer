@@ -19,6 +19,7 @@ class MainSendingSocket(QThread):
 
     def __init__(self, ip, port, key):
         super(MainSendingSocket, self).__init__()
+        # here i set up all the important information for the connection
         self.ip = ip
         self.port = port
         self.sending_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,6 +28,7 @@ class MainSendingSocket(QThread):
         self.mutex = QMutex()
         self.condition = QWaitCondition()
 
+        # here i connect the signals of this class to a slot
         self.got_file_list.connect(self.got_files)
         self.ready_to_send.connect(self.ready_to_send_files)
         self.send_massage.connect(self.send)
@@ -37,18 +39,23 @@ class MainSendingSocket(QThread):
 
     def run(self):
         self.mutex.lock()
+        # here it connects to the phone and then waits until it has the list of files to send
         self.connect_to_phone()
         self.condition.wait(self.mutex)
 
+        # it converts the file list to bytes and sends it
         serialized_file_list = pickle.dumps(self.files)
 
         try:
             self.sending_socket.send(self.encrypting_object.encrypt(serialized_file_list))
 
+            # here it wait again until the computer is ready to start sending the files
             self.condition.wait(self.mutex)
             self.sending_socket.send(self.encrypting_object.encrypt("ready for files".encode()))
 
             while True:
+                # here it waits until the project tells it to send a message
+                # the message is that either a socket opened or that a socket connected
                 self.condition.wait(self.mutex)
                 self.sending_socket.send(self.encrypting_object.encrypt(self.message.encode()))
                 if self.done_condition:
@@ -59,6 +66,7 @@ class MainSendingSocket(QThread):
         self.mutex.unlock()
 
     def connect_to_phone(self):
+        # this function connects to the socket on the phone
         try:
             self.sending_socket.connect((self.ip, self.port))
 
@@ -67,6 +75,8 @@ class MainSendingSocket(QThread):
 
 
     def got_files(self, files):
+        # when the program will have the files a signal will be emitted to this slot and this will run
+        # this function sets the file list and tells the program to stop waiting and continue
         self.files = files
 
         self.mutex.lock()
@@ -74,17 +84,23 @@ class MainSendingSocket(QThread):
         self.mutex.unlock()
 
     def ready_to_send_files(self):
+        # when the program will be ready to send the files a signal will be emitted to this slot and this will run
+        # this function tells the program to stop waiting and continue
         self.mutex.lock()
         self.condition.wakeAll()
         self.mutex.unlock()
 
     def send(self, message):
+        # when the program needs to send a message (during the file sending) a signal will be emitted to this slot and this will run
+        # this function sets the message list and tells the program to stop waiting and continue
         self.mutex.lock()
         self.message = message
         self.condition.wakeAll()
         self.mutex.unlock()
 
     def done(self):
+        # when the program is done a signal will be emitted to this slot and this will run
+        # this function sets the done condition to true list and tells the program to stop waiting and continue
         self.done_condition = True
         self.mutex.lock()
         self.condition.wakeAll()
@@ -100,20 +116,24 @@ class FileSendingSocket(MainSendingSocket):
     def run(self):
         self.connect_to_phone()
 
+        # we send the socket the file name
         file_name = self.file_path.split("/")[-1]
         try:
             self.sending_socket.send(self.encrypting_object.encrypt(str(file_name).encode()))
 
             with open(self.file_path, "rb") as f:
                 while True:
-                    bytes_read = f.read(1024)
+                    # we read 1024 bytes from the file
+                    bytes_read = f.read(self.BUFFER_SIZE)
                     if not bytes_read:
                         # file transmitting is done
                         break
-                    # we use sendall to assure transmission in
-                    # busy networks
+
+                    # we encrypt the data
                     encrypted_bytes = self.encrypting_object.encrypt(bytes_read)
                     size = len(encrypted_bytes)
+
+                    # we send the size and then the data
                     self.sending_socket.send(str(size).encode())
                     message = self.sending_socket.recv(1024)
                     self.sending_socket.send(encrypted_bytes)
@@ -135,6 +155,7 @@ class MainReceivingSocket(QThread):
 
     def __init__(self, ip, port, key):
         super(MainReceivingSocket, self).__init__()
+        # here i set up all the important information for the connection
         self.ip = ip
         self.port = port
         self.done_signal.connect(self.done)
@@ -146,16 +167,20 @@ class MainReceivingSocket(QThread):
     def run(self):
         self.handle_connection()
         try:
+            # we receive the file list and emit to the project object
             serialized_file_list = self.encrypting_object.decrypt(self.receiving_socket.recv(1024))
             list_of_files = pickle.loads(serialized_file_list)
 
             self.got_file_list_from_phone.emit(list_of_files)
 
+            # we wait to receive a message that the phone is ready for sending
             message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
             if message == "ready for files":
                 self.ready_for_files.emit()
 
             while True:
+                # here it waits to receive a message
+                # the message is that either a socket opened or that a socket connected
                 message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
                 self.receive.emit(message)
                 if self.done_condition:
@@ -166,6 +191,7 @@ class MainReceivingSocket(QThread):
         self.receiving_socket.close()
 
     def handle_connection(self):
+        # here we open a socket and listen for connections on the address specified
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((self.ip, self.port))
         sock.listen()
@@ -194,6 +220,7 @@ class FileReceivingSocket(MainReceivingSocket):
     def run(self):
         self.handle_connection()
         try:
+            # here we receive the file name form the socket
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
 
@@ -201,23 +228,23 @@ class FileReceivingSocket(MainReceivingSocket):
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
-                    error_line = 0
-                    # read 1024 bytes from the socket (receive)
+                    # we read the size of the part from the socket
                     size = self.receiving_socket.recv(1024)
                     self.receiving_socket.send(size)
+                    if size == "":
+                        # their is no next piece of data so it doesn't have a size
+                        break
                     size = int(size.decode())
-                    bytes_encrypted = self.receiving_socket.recv(size)
 
-                    error_line += 1
-                    bytes_read = self.encrypting_object.decrypt(bytes_encrypted)
+                    # we receive the data and decrypt it
+                    encrypted_bytes = self.receiving_socket.recv(size)
+                    bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
 
-                    error_line += 1
                     if not bytes_read:
                         # nothing is received
                         # file transmitting is done
                         break
                     # write to the file the bytes we just received
-                    error_line += 1
                     file.write(bytes_read)
         except Exception as exception:
             self.exception_rose.emit(str(exception))

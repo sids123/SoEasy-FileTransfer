@@ -4,6 +4,7 @@ from PyQt5.QtCore import *
 import sys
 
 class Window3(QWidget):
+    # this is the window where you pick locations for the files the other device chose
     all_files_have_location = pyqtSignal(dict)
 
     def __init__(self):
@@ -14,6 +15,7 @@ class Window3(QWidget):
     def setupUi(self):
         self.setObjectName("Form")
 
+        # creating the vertical layout and the actual widget
         self.verticalLayoutWidget = QWidget(self)
         self.verticalLayoutWidget.setGeometry(QRect(100, 100, 900, 1500))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
@@ -22,12 +24,14 @@ class Window3(QWidget):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
 
+        # creating a label and adding it to the vertical layout
         self.label = QLabel(self.verticalLayoutWidget)
         self.label.setObjectName("label")
         self.label.setText("Files:")
         self.label.setFont(QFont('Arial', 15))
         self.verticalLayout.addWidget(self.label)
 
+        # creating the area where the files that the other device chose will be
         self.scrollArea = QScrollArea(self.verticalLayoutWidget)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
@@ -42,22 +46,27 @@ class Window3(QWidget):
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout.addWidget(self.scrollArea)
 
-        self.OK_button = QPushButton(self.verticalLayoutWidget)
-        self.OK_button.setObjectName("OK_button")
-        self.OK_button.setText("OK")
-        self.OK_button.setFont(QFont('Arial', 15))
-        self.OK_button.clicked.connect(self.check_all_files_have_location)
-        self.verticalLayout.addWidget(self.OK_button)
+        # creating the button that you press when you're finished choosing files and adding it to the vertical layout
+        self.ok_button = QPushButton(self.verticalLayoutWidget)
+        self.ok_button.setObjectName("ok_button")
+        self.ok_button.setText("OK")
+        self.ok_button.setFont(QFont('Arial', 15))
+        self.ok_button.clicked.connect(self.check_all_files_have_location)
+        self.verticalLayout.addWidget(self.ok_button)
 
     def select_directory(self, file_name):
+        # creating the object of the file system
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         file_dialog = QFileDialog(self, options=options)
+        # setting the object to a mode in which you choose a directory instead of a file
         file_dialog.setFileMode(QFileDialog.Directory)
         file_dialog.setOption(QFileDialog.ShowDirsOnly, True)
         file_dialog.setFixedSize(1000, 2000)
         file_dialog.show()
         try:
+            # it tries to see if you chose a directory or just closed the window
+            # if you chose a directory it would work and if not the try except will catch it
             if file_dialog.exec_():
                 directory = file_dialog.selectedFiles()[0]
             self.file_location_dict[file_name] = directory
@@ -66,14 +75,18 @@ class Window3(QWidget):
 
     def check_all_files_have_location(self):
         files_have_location = True
+        # it goes over each file and checking if it has a location or is it a None type
         for location in self.file_location_dict.values():
             if location == None:
                 files_have_location = False
         if files_have_location:
+            # if all files have a location then it emits a dictionary with the files and their location
             self.all_files_have_location.emit(self.file_location_dict)
 
     def add_files(self, files):
+        # here you add files to this window
         for file in files:
+            # for each file it extracts the file name insert it to the dict and adds a label for it in the GUI
             file = file.split("/")[-1]
             self.file_location_dict[file] = None
             label = QLabel(file)

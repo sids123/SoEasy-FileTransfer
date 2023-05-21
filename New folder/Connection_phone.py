@@ -21,6 +21,7 @@ class MainSendingSocket(QThread):
 
     def __init__(self, ip, port, key):
         super(MainSendingSocket, self).__init__()
+        # here i set up all the important information for the connection
         self.ip = ip
         self.port = port
         self.sending_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,6 +30,7 @@ class MainSendingSocket(QThread):
         self.mutex = QMutex()
         self.condition = QWaitCondition()
 
+        # here i connect the signals of this class to a slot
         self.got_file_list.connect(self.got_files)
         self.ready_to_send.connect(self.ready_to_send_files)
         self.send_massage.connect(self.send)
@@ -39,17 +41,22 @@ class MainSendingSocket(QThread):
 
     def run(self):
         self.mutex.lock()
+        # here it connects to the phone and then waits until it has the list of files to send
         self.connect_to_phone()
         self.condition.wait(self.mutex)
 
+        # it converts the file list to bytes and sends it
         serialized_file_list = pickle.dumps(self.files)
         try:
             self.sending_socket.send(self.encrypting_object.encrypt(serialized_file_list))
 
+            # here it wait again until the computer is ready to start sending the files
             self.condition.wait(self.mutex)
             self.sending_socket.send(self.encrypting_object.encrypt("ready for files".encode()))
 
             while True:
+                # here it waits until the project tells it to send a message
+                # the message is that either a socket opened or that a socket connected
                 self.condition.wait(self.mutex)
                 self.sending_socket.send(self.encrypting_object.encrypt(self.message.encode()))
                 if self.done_condition:
@@ -63,12 +70,15 @@ class MainSendingSocket(QThread):
         self.sending_socket.close()
 
     def connect_to_phone(self):
+        # this function connects to the socket on the phone
         try:
             self.sending_socket.connect((self.ip, self.port))
         except Exception as exception:
             self.exception_rose.emit(str(exception))
 
     def got_files(self, files):
+        # when the program will have the files a signal will be emitted to this slot and this will run
+        # this function sets the file list and tells the program to stop waiting and continue
         self.files = files
 
         self.mutex.lock()
