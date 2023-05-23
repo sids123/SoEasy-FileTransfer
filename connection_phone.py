@@ -88,12 +88,16 @@ class MainSendingSocket(QThread):
 
     def done(self):
         self.done_condition = True
+        self.mutex.lock()
+        self.condition.wakeAll()
+        self.mutex.unlock()
+        
 
 class FileSendingSocket(MainSendingSocket):
     def __init__(self, ip, port, file_path, key):
         super(FileSendingSocket, self).__init__(ip, port, key)
         self.file_path = file_path
-        self.BUFFER_SIZE = 1024
+        self.BUFFER_SIZE = 256
 
     def run(self):
         self.connect_to_phone()
@@ -110,7 +114,11 @@ class FileSendingSocket(MainSendingSocket):
                         break
                     # we use sendall to assure transmission in
                     # busy networks
-                    self.sending_socket.sendall(self.encrypting_object.encrypt(bytes_read))
+                    encrypted_bytes = self.encrypting_object.encrypt(bytes_read)
+                    size = len(encrypted_bytes)
+                    self.sending_socket.send(str(size).encode())
+                    message = self.sending_socket.recv(self.BUFFER_SIZE)
+                    self.sending_socket.send(encrypted_bytes)
 
         except Exception as exception:
                 self.exception_rose.emit(str(exception))
@@ -128,13 +136,15 @@ class MainReceivingSocket(QThread):
 
 
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, key=""):
         super(MainReceivingSocket, self).__init__()
         self.ip = ip
         self.port = port
         self.done_signal.connect(self.done)
         self.done_condition = False
         self.receiving_socket=None
+        if key != "":
+            self.encrypting_object = Fernet(key)
 
     def run(self):
         self.handle_connection()
@@ -184,12 +194,13 @@ class FileReceivingSocket(MainReceivingSocket):
     def __init__(self, ip, port, files_and_paths, key):
         super(FileReceivingSocket, self).__init__(ip, port, key)
         self.file = None
-        self.BUFFER_SIZE = 256
+        self.BUFFER_SIZE = 1024
         self.files_and_paths = files_and_paths
         self.finished = False
 
     def run(self):
         self.handle_connection()
+        error_line = 0
         try:
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
@@ -197,15 +208,28 @@ class FileReceivingSocket(MainReceivingSocket):
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
+                    error_line = 0
                     # read 1024 bytes from the socket (receive)
-                    bytes_read = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE))
-                    if not bytes_read:
-                        # nothing is received
-                        # file transmitting is done
+                    size = self.receiving_socket.recv(1024)
+                    self.receiving_socket.send(size)
+                    if size == b"":
                         break
-                    # write to the file the bytes we just received
+                    size = int(size.decode())
+                    bytes_encrypted = self.receiving_socket.recv(size)
+                    
+                    error_line += 1
+                    
+                    bytes_read = self.encrypting_object.decrypt(bytes_encrypted)
+                    error_line += 1
+                    if not bytes_read:
+                # nothing is received
+                # file transmitting is done
+                        break
+            # write to the file the bytes we just received
+                    error_line += 1
+                    
+                    
                     file.write(bytes_read)
-            time.sleep(1)
         except Exception as exception:
             self.exception_rose.emit(str(exception))
         self.finished = True

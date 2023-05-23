@@ -63,6 +63,8 @@ class MainSendingSocket(QThread):
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
+        self.sending_socket.close()
+        print(4)
         self.mutex.unlock()
 
     def connect_to_phone(self):
@@ -135,13 +137,13 @@ class FileSendingSocket(MainSendingSocket):
 
                     # we send the size and then the data
                     self.sending_socket.send(str(size).encode())
-                    message = self.sending_socket.recv(1024)
+                    message = self.sending_socket.recv(self.BUFFER_SIZE)
                     self.sending_socket.send(encrypted_bytes)
 
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-
+        print(2)
         self.sending_socket.close()
 
 
@@ -188,6 +190,7 @@ class MainReceivingSocket(QThread):
 
         except Exception as exception:
             self.exception_rose.emit(str(exception))
+        print(3)
         self.receiving_socket.close()
 
     def handle_connection(self):
@@ -223,31 +226,56 @@ class FileReceivingSocket(MainReceivingSocket):
             # here we receive the file name form the socket
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
-
+            self.receiving_socket.settimeout(5)
             time.sleep(1)
+            error_line = 0
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
+                    error_line = 0
                     # we read the size of the part from the socket
-                    size = self.receiving_socket.recv(1024)
+                    try:
+                        size = self.receiving_socket.recv(1024)
+                    except:
+                        size = b'1464'
+                    error_line += 1
                     self.receiving_socket.send(size)
-                    if size == "":
+                    if size == b"":
                         # their is no next piece of data so it doesn't have a size
                         break
+                    error_line += 1
+
                     size = int(size.decode())
 
                     # we receive the data and decrypt it
-                    encrypted_bytes = self.receiving_socket.recv(size)
-                    bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
+                    error_line += 1
 
-                    if not bytes_read:
+                    encrypted_bytes = self.receiving_socket.recv(size)
+
+                    if not encrypted_bytes:
                         # nothing is received
                         # file transmitting is done
                         break
                     # write to the file the bytes we just received
-                    file.write(bytes_read)
+                    error_line += 1
+
+                    if encrypted_bytes.decode()[-1] != '=':
+                        error_line += 1
+
+                        rest_of_bytes = self.receiving_socket.recv(size)
+                        print(rest_of_bytes)
+                        rest_of_bytes = rest_of_bytes.split(b'=')[0]
+                        encrypted_bytes += rest_of_bytes + b'='
+                    error_line += 1
+
+                    if encrypted_bytes.decode()[-1] == '=':
+                        bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
+                        file.write(bytes_read)
         except Exception as exception:
             self.exception_rose.emit(str(exception))
+            print(str(exception) + file_name + str(error_line))
+            print(1)
+        print(2)
         self.finished = True
         self.receiving_socket.close()
 

@@ -100,10 +100,10 @@ class Project:
             self.file_sending_sockets.append(sock)
             self.main_sending_socket.send_massage.emit("connected")
             time.sleep(1)
-
+            
         self.main_sending_socket.done_signal.emit()
         self.main_receiving_socket.done_signal.emit()
-
+        
 
         files_not_received = []
         all_socket_finished = True
@@ -118,6 +118,7 @@ class Project:
         self.main_window.change_to_message_win("all files received successfully")
 
         self.mutex.unlock()
+        print(1)
 
     def win2_finished(self, files):
         self.files = files

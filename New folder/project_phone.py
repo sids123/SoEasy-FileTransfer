@@ -26,7 +26,7 @@ class Project:
         self.main_window = MainWindow()
         self.main_receiving_socket = MainReceivingSocket(self.ip, self.port)
         self.got_files = False
-        self.finished_window2 = False
+        self.is_window2_finished = False
         self.ready_for_the_files = False
         self.is_phone_ready_for_the_files = False
         self.mutex = QMutex()
@@ -49,7 +49,10 @@ class Project:
 
     def exception_rose(self, error_message):
         # this function gets called in case of an exception
-        self.main_window.change_to_message_win(error_message)
+        if error_message == "":
+            self.main_window.change_to_message_win("error")
+        else:
+            self.main_window.change_to_message_win(error_message)
 
     def handle_data(self, data):
         # scan the qr code and we need to connect the the computer
@@ -72,7 +75,7 @@ class Project:
         self.files_from_computer = list_of_files
         self.main_window.window3.add_files(self.files_from_computer)
         self.got_files = True
-        if (self.finished_window2):
+        if (self.is_window2_finished):
             self.main_window.change_win()
 
     def computer_ready_for_files(self):
@@ -143,7 +146,7 @@ class Project:
     def finished_window2(self, files):
         # this happens when the second window finishes. it updates the files
         self.files = files
-        self.finished_window2 = True
+        self.is_window2_finished = True
         # if the computer already sent the file than we can move to the next window and if not we wait for him
         if (self.got_files):
             self.main_window.change_win()

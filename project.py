@@ -10,6 +10,7 @@ class Project:
     def __init__(self):
         # we set all the important stuff here
         self.key = Fernet.generate_key()
+        print(self.key)
         self.ip = str(socket.gethostbyname(socket.gethostname()))
         self.port = 6744
         self.phone_port = 6745
@@ -40,7 +41,10 @@ class Project:
 
     def exception_rose(self, error_message):
         # this function gets called in case of an exception
-        self.main_window.change_to_message_win(error_message)
+        if error_message == "":
+            self.main_window.change_to_message_win("error")
+        else:
+            self.main_window.change_to_message_win(error_message)
 
     def handle_connection(self, address):
         # this gets called when the phone connected and now we need to connect to the phone

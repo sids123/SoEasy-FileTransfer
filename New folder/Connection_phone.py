@@ -98,6 +98,7 @@ class MainSendingSocket(QThread):
 
     def done(self):
         self.done_condition = True
+        
 
 class FileSendingSocket(MainSendingSocket):
     def __init__(self, ip, port, file_path, key):
@@ -123,7 +124,7 @@ class FileSendingSocket(MainSendingSocket):
                     encrypted_bytes = self.encrypting_object.encrypt(bytes_read)
                     size = len(encrypted_bytes)
                     self.sending_socket.send(str(size).encode())
-                    message = self.sending_socket.recv(1024)
+                    message = self.sending_socket.recv(self.BUFFER_SIZE)
                     self.sending_socket.send(encrypted_bytes)
 
         except Exception as exception:
@@ -218,20 +219,24 @@ class FileReceivingSocket(MainReceivingSocket):
                     # read 1024 bytes from the socket (receive)
                     size = self.receiving_socket.recv(1024)
                     self.receiving_socket.send(size)
+                    if size == b"":
+                        # their is no next piece of data so it doesn't have a size
+                        break
                     size = int(size.decode())
-                    bytes_encrypted = self.receiving_socket.recv(size)
+                    encrypted_bytes = self.receiving_socket.recv(size)
                     
                     error_line += 1
-                    bytes_read = self.encrypting_object.decrypt(bytes_encrypted)
 
                     error_line += 1
-                    if not bytes_read:
+                    if not encrypted_bytes:
                 # nothing is received
                 # file transmitting is done
                         break
             # write to the file the bytes we just received
                     error_line += 1
-                    file.write(bytes_read)
+                    if encrypted_bytes.decode()[-1] == '=':
+                        bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
+                        file.write(bytes_read)
         except Exception as exception:
             self.exception_rose.emit(str(exception))
         self.finished = True
