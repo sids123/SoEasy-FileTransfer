@@ -229,13 +229,19 @@ class FileReceivingSocket(MainReceivingSocket):
             self.receiving_socket.settimeout(5)
             time.sleep(1)
             error_line = 0
+            bytes_arrived_well = True
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
                     error_line = 0
                     # we read the size of the part from the socket
+
                     try:
-                        size = self.receiving_socket.recv(1024)
+                        if bytes_arrived_well:
+                            size = self.receiving_socket.recv(1024)
+                        else:
+                            size = b'1464'
+                            bytes_arrived_well = True
                     except:
                         size = b'1464'
                     error_line += 1
@@ -261,11 +267,14 @@ class FileReceivingSocket(MainReceivingSocket):
 
                     if encrypted_bytes.decode()[-1] != '=':
                         error_line += 1
-
                         rest_of_bytes = self.receiving_socket.recv(size)
-                        print(rest_of_bytes)
-                        rest_of_bytes = rest_of_bytes.split(b'=')[0]
+                        rest_of_bytes = rest_of_bytes.split(b'=')
+                        if len(rest_of_bytes) == 2:
+                            if rest_of_bytes[1].isdigit():
+                                bytes_arrived_well = False
+                        rest_of_bytes = rest_of_bytes[0]
                         encrypted_bytes += rest_of_bytes + b'='
+
                     error_line += 1
 
                     if encrypted_bytes.decode()[-1] == '=':
