@@ -98,6 +98,9 @@ class MainSendingSocket(QThread):
 
     def done(self):
         self.done_condition = True
+        self.mutex.lock()
+        self.condition.wakeAll()
+        self.mutex.unlock()
         
 
 class FileSendingSocket(MainSendingSocket):
@@ -166,7 +169,11 @@ class MainReceivingSocket(QThread):
                 self.ready_for_files.emit()
 
             while True:
-                message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
+                encrypted_bytes = self.receiving_socket.recv(1024)
+                try:
+                    message = self.encrypting_object.decrypt(encrypted_bytes).decode()
+                except:
+                    message = encrypted_bytes.decode()
                 self.receive.emit(message)  # add signal connected
                 if self.done_condition:
                     break
@@ -212,28 +219,56 @@ class FileReceivingSocket(MainReceivingSocket):
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
             time.sleep(1)
+            bytes_arrived_well = True
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
                     error_line = 0
-                    # read 1024 bytes from the socket (receive)
-                    size = self.receiving_socket.recv(1024)
+                    # we read the size of the part from the socket
+
+                    try:
+                        if bytes_arrived_well:
+                            self.receiving_socket.settimeout(3)
+                            size = self.receiving_socket.recv(1024)
+                        else:
+                            size = b'1464'
+                            bytes_arrived_well = True
+                    except:
+                        size = b'1464'
+                    self.receiving_socket.setblocking(True)
+                    error_line += 1
                     self.receiving_socket.send(size)
                     if size == b"":
                         # their is no next piece of data so it doesn't have a size
                         break
-                    size = int(size.decode())
-                    encrypted_bytes = self.receiving_socket.recv(size)
-                    
                     error_line += 1
 
+                    size = int(size.decode())
+
+                    # we receive the data and decrypt it
                     error_line += 1
+
+                    encrypted_bytes = self.receiving_socket.recv(size)
+
                     if not encrypted_bytes:
-                # nothing is received
-                # file transmitting is done
+                        # nothing is received
+                        # file transmitting is done
                         break
-            # write to the file the bytes we just received
+                    # write to the file the bytes we just received
                     error_line += 1
+
+                    if encrypted_bytes.decode()[-1] != '=':
+                        error_line += 1
+                        rest_of_bytes = self.receiving_socket.recv(size)
+                        rest_of_bytes = rest_of_bytes.split(b'=')
+                        if len(rest_of_bytes) == 2:
+                            if rest_of_bytes[1].isdigit():
+                                bytes_arrived_well = False
+                        rest_of_bytes = rest_of_bytes[0]
+                        encrypted_bytes += rest_of_bytes + b'='
+
+                    error_line += 1
+
                     if encrypted_bytes.decode()[-1] == '=':
                         bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
                         file.write(bytes_read)

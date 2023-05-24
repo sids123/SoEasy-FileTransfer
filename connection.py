@@ -62,7 +62,7 @@ class MainSendingSocket(QThread):
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
+            self.exception_rose.emit(str(exception) + "1")
         self.sending_socket.close()
         print(4)
         self.mutex.unlock()
@@ -117,7 +117,7 @@ class FileSendingSocket(MainSendingSocket):
 
     def run(self):
         self.connect_to_phone()
-
+        print(1)
         # we send the socket the file name
         file_name = self.file_path.split("/")[-1]
         try:
@@ -142,7 +142,7 @@ class FileSendingSocket(MainSendingSocket):
 
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
+            self.exception_rose.emit(str(exception) + "2")
         print(2)
         self.sending_socket.close()
 
@@ -183,13 +183,17 @@ class MainReceivingSocket(QThread):
             while True:
                 # here it waits to receive a message
                 # the message is that either a socket opened or that a socket connected
-                message = self.encrypting_object.decrypt(self.receiving_socket.recv(1024)).decode()
+                encrypted_bytes = self.receiving_socket.recv(1024)
+                try:
+                    message = self.encrypting_object.decrypt(encrypted_bytes).decode()
+                except:
+                    message = encrypted_bytes.decode()
                 self.receive.emit(message)
                 if self.done_condition:
                     break
 
         except Exception as exception:
-            self.exception_rose.emit(str(exception))
+            self.exception_rose.emit(str(exception) + "3")
         print(3)
         self.receiving_socket.close()
 
