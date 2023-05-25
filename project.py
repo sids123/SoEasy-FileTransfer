@@ -10,7 +10,6 @@ class Project:
     def __init__(self):
         # we set all the important stuff here
         self.key = Fernet.generate_key()
-        print(self.key)
         self.ip = str(socket.gethostbyname(socket.gethostname()))
         self.port = 6744
         self.phone_port = 6745

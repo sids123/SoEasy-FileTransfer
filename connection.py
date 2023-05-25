@@ -242,12 +242,14 @@ class FileReceivingSocket(MainReceivingSocket):
 
                     try:
                         if bytes_arrived_well:
+                            self.receiving_socket.settimeout(3)
                             size = self.receiving_socket.recv(1024)
                         else:
                             size = b'1464'
                             bytes_arrived_well = True
                     except:
                         size = b'1464'
+                    self.receiving_socket.setblocking(True)
                     error_line += 1
                     self.receiving_socket.send(size)
                     if size == b"":

@@ -79,6 +79,20 @@ class Window3(QWidget):
         for location in self.file_location_dict.values():
             if location == None:
                 files_have_location = False
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+
+                # setting message for Message Box
+                msg.setText("Not All Files Have Location")
+
+                # setting Message box window title
+                msg.setWindowTitle("Critical MessageBox")
+
+                # declaring buttons on Message Box
+                msg.setStandardButtons(QMessageBox.Cancel)
+
+                # start the app
+                retval = msg.exec_()
         if files_have_location:
             # if all files have a location then it emits a dictionary with the files and their location
             self.all_files_have_location.emit(self.file_location_dict)
