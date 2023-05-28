@@ -1,11 +1,9 @@
 import time
-
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import socket
 import pickle
-import os
 from cryptography.fernet import Fernet
 
 
@@ -64,7 +62,6 @@ class MainSendingSocket(QThread):
         except Exception as exception:
             self.exception_rose.emit(str(exception) + "1")
         self.sending_socket.close()
-        print(4)
         self.mutex.unlock()
 
     def connect_to_phone(self):
@@ -117,7 +114,6 @@ class FileSendingSocket(MainSendingSocket):
 
     def run(self):
         self.connect_to_phone()
-        print(1)
         # we send the socket the file name
         file_name = self.file_path.split("/")[-1]
         try:
@@ -143,7 +139,6 @@ class FileSendingSocket(MainSendingSocket):
 
         except Exception as exception:
             self.exception_rose.emit(str(exception) + "2")
-        print(2)
         self.sending_socket.close()
 
 
@@ -194,7 +189,6 @@ class MainReceivingSocket(QThread):
 
         except Exception as exception:
             self.exception_rose.emit(str(exception) + "3")
-        print(3)
         self.receiving_socket.close()
 
     def handle_connection(self):
@@ -232,14 +226,11 @@ class FileReceivingSocket(MainReceivingSocket):
             location = self.files_and_paths[file_name]
             self.receiving_socket.settimeout(5)
             time.sleep(1)
-            error_line = 0
             bytes_arrived_well = True
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
-                    error_line = 0
                     # we read the size of the part from the socket
-
                     try:
                         if bytes_arrived_well:
                             self.receiving_socket.settimeout(3)
@@ -250,30 +241,27 @@ class FileReceivingSocket(MainReceivingSocket):
                     except:
                         size = b'1464'
                     self.receiving_socket.setblocking(True)
-                    error_line += 1
                     self.receiving_socket.send(size)
                     if size == b"":
                         # their is no next piece of data so it doesn't have a size
                         break
-                    error_line += 1
 
                     size = int(size.decode())
 
-                    # we receive the data and decrypt it
-                    error_line += 1
-
+                    # we receive the data
                     encrypted_bytes = self.receiving_socket.recv(size)
 
                     if not encrypted_bytes:
                         # nothing is received
                         # file transmitting is done
                         break
-                    # write to the file the bytes we just received
-                    error_line += 1
 
+                    # if not received properly then we receive again what wasn't received the first time
                     if encrypted_bytes.decode()[-1] != '=':
-                        error_line += 1
+                        # we receive again
                         rest_of_bytes = self.receiving_socket.recv(size)
+
+                        # we extract the lost data from what was received
                         rest_of_bytes = rest_of_bytes.split(b'=')
                         if len(rest_of_bytes) == 2:
                             if rest_of_bytes[1].isdigit():
@@ -281,16 +269,12 @@ class FileReceivingSocket(MainReceivingSocket):
                         rest_of_bytes = rest_of_bytes[0]
                         encrypted_bytes += rest_of_bytes + b'='
 
-                    error_line += 1
-
+                    # write to the file the bytes we just received
                     if encrypted_bytes.decode()[-1] == '=':
                         bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
                         file.write(bytes_read)
         except Exception as exception:
             self.exception_rose.emit(str(exception))
-            print(str(exception) + file_name + str(error_line))
-            print(1)
-        print(2)
         self.finished = True
         self.receiving_socket.close()
 

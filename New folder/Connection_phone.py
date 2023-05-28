@@ -214,8 +214,8 @@ class FileReceivingSocket(MainReceivingSocket):
 
     def run(self):
         self.handle_connection()
-        error_line = 0
         try:
+            # here we receive the file name form the socket
             file_name = self.encrypting_object.decrypt(self.receiving_socket.recv(self.BUFFER_SIZE)).decode()
             location = self.files_and_paths[file_name]
             time.sleep(1)
@@ -223,9 +223,7 @@ class FileReceivingSocket(MainReceivingSocket):
 
             with open(f"{location}/{file_name}", "wb") as file:
                 while True:
-                    error_line = 0
                     # we read the size of the part from the socket
-
                     try:
                         if bytes_arrived_well:
                             self.receiving_socket.settimeout(3)
@@ -236,18 +234,14 @@ class FileReceivingSocket(MainReceivingSocket):
                     except:
                         size = b'1464'
                     self.receiving_socket.setblocking(True)
-                    error_line += 1
                     self.receiving_socket.send(size)
                     if size == b"":
                         # their is no next piece of data so it doesn't have a size
                         break
-                    error_line += 1
 
                     size = int(size.decode())
 
-                    # we receive the data and decrypt it
-                    error_line += 1
-
+                    # we receive the data
                     encrypted_bytes = self.receiving_socket.recv(size)
 
                     if not encrypted_bytes:
@@ -255,11 +249,13 @@ class FileReceivingSocket(MainReceivingSocket):
                         # file transmitting is done
                         break
                     # write to the file the bytes we just received
-                    error_line += 1
 
+                    # if not received properly then we receive again what wasn't received the first time
                     if encrypted_bytes.decode()[-1] != '=':
-                        error_line += 1
+                        # we receive again
                         rest_of_bytes = self.receiving_socket.recv(size)
+
+                        # we extract the lost data from what was received
                         rest_of_bytes = rest_of_bytes.split(b'=')
                         if len(rest_of_bytes) == 2:
                             if rest_of_bytes[1].isdigit():
@@ -267,8 +263,7 @@ class FileReceivingSocket(MainReceivingSocket):
                         rest_of_bytes = rest_of_bytes[0]
                         encrypted_bytes += rest_of_bytes + b'='
 
-                    error_line += 1
-
+                    # write to the file the bytes we just received
                     if encrypted_bytes.decode()[-1] == '=':
                         bytes_read = self.encrypting_object.decrypt(encrypted_bytes)
                         file.write(bytes_read)
